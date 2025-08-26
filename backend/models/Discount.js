@@ -9,6 +9,13 @@ const discountSchema = new mongoose.Schema(
       required: [true, "Discount name is required"],
       maxlength: 255,
     },
+    code: {
+      type: String,
+      unique: true,
+      sparse: true, // Allows null values but ensures uniqueness when present
+      maxlength: 50,
+      uppercase: true,
+    },
     description: {
       type: String,
       default: "",
@@ -76,6 +83,7 @@ const discountSchema = new mongoose.Schema(
 // Index for efficient queries
 discountSchema.index({ is_active: 1, valid_from: 1, valid_to: 1 });
 discountSchema.index({ type: 1 });
+discountSchema.index({ code: 1 });
 
 // Virtual to check if discount is currently valid (excluding usage limits)
 discountSchema.virtual('is_currently_valid').get(function() {

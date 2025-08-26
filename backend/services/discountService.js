@@ -227,6 +227,70 @@ class DiscountService {
   }
 
   /**
+   * Find discount by code or ID
+   * @param {String} codeOrId - Discount code or ID
+   * @returns {Object|null} - Discount object or null
+   */
+  static async findDiscountByCodeOrId(codeOrId) {
+    try {
+      // First try to find by code
+      let discount = await Discount.findOne({
+        code: codeOrId.toUpperCase()
+      }).populate('specific_items');
+
+      // If not found by code, try by ID
+      if (!discount) {
+        discount = await Discount.findById(codeOrId)
+          .populate('specific_items');
+      }
+
+      return discount;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  /**
+   * Apply discount by code or ID to cart
+   * @param {String} codeOrId - Discount code or ID
+   * @param {Array} cartItems - Array of cart items
+   * @param {String} customerId - Customer ID
+   * @returns {Object} - { isValid, discount, discountAmount, totalAfterDiscount, reason }
+   */
+  static async applyDiscountByCodeOrId(codeOrId, cartItems, customerId) {
+    try {
+      // Find discount by code or ID
+      const discount = await this.findDiscountByCodeOrId(codeOrId);
+
+      if (!discount) {
+        return {
+          isValid: false,
+          discount: null,
+          discountAmount: 0,
+          totalAfterDiscount: 0,
+          reason: "Discount not found"
+        };
+      }
+
+      // Apply discount using existing method
+      const result = await this.applyDiscountToCart(discount, cartItems, customerId);
+
+      return {
+        ...result,
+        discount: discount
+      };
+    } catch (error) {
+      return {
+        isValid: false,
+        discount: null,
+        discountAmount: 0,
+        totalAfterDiscount: 0,
+        reason: "Error applying discount"
+      };
+    }
+  }
+
+  /**
    * Increment discount usage count
    * @param {String} discountId - Discount ID
    */

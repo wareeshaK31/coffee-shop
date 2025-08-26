@@ -98,6 +98,29 @@ export const getUserOrders = async (req, res) => {
   }
 };
 
+// 👤 Get specific order details for a user
+export const getOrderDetails = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    const order = await Order.findOne({
+      _id: orderId,
+      customer: req.user._id
+    })
+      .populate("customer", "name email")
+      .populate("items.menuItem")
+      .populate("discount");
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    res.json(order);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // 👑 Admin: Get all orders
 export const getAllOrders = async (_req, res) => {
   try {

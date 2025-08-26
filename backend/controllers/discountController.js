@@ -199,53 +199,46 @@ export const getAvailableDiscounts = async (req, res) => {
   }
 };
 
-// @desc Apply discount to cart
+// @desc Apply discount to cart by ID or code
 export const applyDiscountToCart = async (req, res) => {
   try {
-    const { discountId } = req.body;
-    
-    if (!discountId) {
-      return res.status(400).json({ message: "Discount ID is required" });
+    const { discountId, discountCode } = req.body;
+    const codeOrId = discountCode || discountId;
+
+    if (!codeOrId) {
+      return res.status(400).json({ message: "Discount ID or code is required" });
     }
 
     // Get user's cart
     const cart = await Cart.findOne({ user: req.user._id })
       .populate('items.menuItem');
-    
+
     if (!cart || cart.items.length === 0) {
       return res.status(400).json({ message: "Cart is empty" });
     }
 
-    // Get discount
-    const discount = await Discount.findById(discountId)
-      .populate('specific_items');
-    
-    if (!discount) {
-      return res.status(404).json({ message: "Discount not found" });
-    }
-
-    // Apply discount using service
-    const result = await DiscountService.applyDiscountToCart(
-      discount,
+    // Apply discount using service (supports both code and ID)
+    const result = await DiscountService.applyDiscountByCodeOrId(
+      codeOrId,
       cart.items,
       req.user._id
     );
 
     if (!result.isValid) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: result.reason,
-        isValid: false 
+        isValid: false
       });
     }
 
-    // Update cart with discount information (you might want to store this in cart model)
     res.json({
       message: "Discount applied successfully",
       discount: {
-        _id: discount._id,
-        name: discount.name,
-        type: discount.type,
-        value: discount.value
+        _id: result.discount._id,
+        name: result.discount.name,
+        code: result.discount.code,
+        type: result.discount.type,
+        value: result.discount.value
       },
       totals: {
         totalBeforeDiscount: result.totalBeforeDiscount,

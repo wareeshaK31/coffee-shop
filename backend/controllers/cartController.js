@@ -76,7 +76,7 @@ export const getCart = async (req, res) => {
   }
 };
 
-// ❌ Remove item from cart
+// ❌ Remove item from cart (DELETE method)
 export const removeFromCart = async (req, res) => {
   try {
     const { menuItemId } = req.params;
@@ -104,13 +104,50 @@ export const removeFromCart = async (req, res) => {
   }
 };
 
-// 🎫 Apply discount to cart
+// ❌ Remove item from cart (POST method - alternative for better compatibility)
+export const removeFromCartPost = async (req, res) => {
+  try {
+    const { menuItemId } = req.body;
+
+    if (!menuItemId) {
+      return res.status(400).json({ message: "Menu item ID is required" });
+    }
+
+    let cart = await Cart.findOne({ user: req.user._id });
+
+    if (!cart) return res.status(404).json({ message: "Cart not found" });
+
+    cart.items = cart.items.filter(
+      (item) => item.menuItem.toString() !== menuItemId
+    );
+
+    // Clear any applied discount when cart changes
+    cart.clearDiscount();
+
+    await cart.save();
+
+    // Return populated cart
+    const populatedCart = await Cart.findById(cart._id)
+      .populate('items.menuItem')
+      .populate('appliedDiscount');
+
+    res.json({
+      message: "Item removed from cart successfully",
+      cart: populatedCart
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// 🎫 Apply discount to cart by ID or code
 export const applyDiscountToCart = async (req, res) => {
   try {
-    const { discountId } = req.body;
+    const { discountId, discountCode } = req.body;
+    const codeOrId = discountCode || discountId;
 
-    if (!discountId) {
-      return res.status(400).json({ message: "Discount ID is required" });
+    if (!codeOrId) {
+      return res.status(400).json({ message: "Discount ID or code is required" });
     }
 
     // Get user's cart
@@ -121,9 +158,9 @@ export const applyDiscountToCart = async (req, res) => {
       return res.status(400).json({ message: "Cart is empty" });
     }
 
-    // Apply discount using service
-    const result = await DiscountService.applyDiscountToCart(
-      { _id: discountId },
+    // Apply discount using service (supports both code and ID)
+    const result = await DiscountService.applyDiscountByCodeOrId(
+      codeOrId,
       cart.items,
       req.user._id
     );
@@ -136,7 +173,7 @@ export const applyDiscountToCart = async (req, res) => {
     }
 
     // Update cart with discount
-    cart.appliedDiscount = discountId;
+    cart.appliedDiscount = result.discount._id;
     cart.totalBeforeDiscount = result.totalBeforeDiscount;
     cart.discountAmount = result.discountAmount;
     cart.totalAfterDiscount = result.totalAfterDiscount;
