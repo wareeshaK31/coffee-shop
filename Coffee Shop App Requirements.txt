@@ -1,0 +1,302 @@
+﻿Coffee Shop App
+Project Overview
+The Coffee Shop App is a web application that enables customers to browse a menu, place orders, and apply discounts or coupons to their orders. The primary focus is on the discounts/coupons module, which supports various discount types and conditions, ensuring a robust and user-friendly experience. Administrators can manage menu items and discounts through a dedicated interface. This document outlines the features, data models, relationships, and workflows to facilitate direct implementation in Django without requiring additional design decisions.
+Features and Functionality
+1. User Authentication
+* Customers can register with an email and password.
+* Customers can log in and log out.
+* Administrators (staff users) can log in to manage menu items and discounts.
+* Only authenticated customers can place orders and apply discounts.
+2. Menu Browsing
+* All users (authenticated or not) can view a list of menu items, grouped by category (e.g., Coffee, Pastry, Drink).
+* Each menu item displays its name, description, price, and category.
+* Users can filter menu items by category.
+3. Order Placement
+* Authenticated customers can add menu items to their cart.
+* Customers can view their cart, including item quantities and total price before discounts.
+* Customers can apply a discount or coupon to their order.
+* Customers can proceed to place the order (payment processing is assumed to be handled externally).
+4. Discount Management (Admin Only)
+* Admins can create, update, and delete discounts.
+* Discounts can be one of three types:
+   * Percentage Discount: A percentage off the total order value (e.g., 10% off).
+   * Fixed Amount Discount: A fixed amount subtracted from the total order value (e.g., $5 off).
+   * Item-Specific Discount: A discount applied to specific menu items (e.g., 20% off all coffees).
+* Each discount includes:
+   * Name (e.g., "Summer Sale").
+   * Description (e.g., "Get 10% off your order").
+   * Type (percentage, fixed, item-specific).
+   * Value (e.g., 10 for 10% or 5 for $5).
+   * Conditions:
+      * Minimum order value (optional).
+      * Specific menu items (for item-specific discounts).
+      * Valid from and to dates.
+   * Usage limits:
+      * Total number of uses (optional).
+      * Number of uses per customer (optional).
+   * Active/Inactive status.
+5. Discount Application (Customer)
+* Authenticated customers can view a list of active discounts (is_active=True, within valid dates, and not exceeding usage limits).
+* Customers can apply a discount by selecting from the list or entering a discount code.
+* The system validates the discount based on:
+   * Active status.
+   * Current date within valid_from and valid_to.
+   * Order meeting the minimum order value (if applicable).
+   * Discount not exceeding total or per-customer usage limits.
+   * For item-specific discounts, the order must include the specified items.
+* If valid, the discount is applied, and the order total is updated in the cart.
+* Only one discount can be applied per order.
+6. Order History
+* Authenticated customers can view their past orders, including:
+   * Order date and time.
+   * List of items with quantities.
+   * Total price before discount.
+   * Applied discount (if any) and discount amount.
+   * Total price after discount.
+   * Order status (e.g., Pending, Paid, Completed, Canceled).
+7. Admin Dashboard
+* Admins can access a Django admin interface to manage:
+   * Menu items (create, update, delete).
+   * Discounts (create, update, delete).
+   * Orders (view all orders and their details).
+Data Models and Relationships
+1. User (Built-in Django User Model)
+* Fields:
+   * id: Primary Key
+   * email: String, unique, required
+   * password: Hashed password, required
+   * is_staff: Boolean, default False (True for admins)
+* Relationships:
+   * One-to-many with Order (a user can have multiple orders).
+* Notes: Use Django’s built-in User model for authentication.
+2. MenuItem
+* Fields:
+   * id: Primary Key
+   * name: String, max 255 characters, required
+   * description: Text, optional
+   * price: Decimal, required (e.g., 4.99)
+   * category: String, choices ("Coffee", "Pastry", "Drink", "Other"), required
+* Relationships:
+   * One-to-many with OrderItem (a menu item can be part of multiple orders).
+   * Many-to-many with Discount (for item-specific discounts).
+3. Discount
+* Fields:
+   * id: Primary Key
+   * name: String, max 255 characters, required
+   * description: Text, optional
+   * type: String, choices ("percentage", "fixed", "item_specific"), required
+   * value: Decimal, required (e.g., 10 for 10%, 5 for $5)
+   * min_order_value: Decimal, optional (e.g., 10.00)
+   * valid_from: DateTime, required
+   * valid_to: DateTime, required
+   * max_uses: Integer, optional (e.g., 100 for total uses)
+   * max_uses_per_customer: Integer, optional (e.g., 1 for one use per customer)
+   * is_active: Boolean, default True
+* Relationships:
+   * Many-to-many with MenuItem (for item-specific discounts).
+   * One-to-many with Order (a discount can be applied to multiple orders).
+* Constraints: Ensure valid_from is before valid_to.
+4. Order
+* Fields:
+   * id: Primary Key
+   * customer: ForeignKey to User, required
+   * total_before_discount: Decimal, required
+   * discount: ForeignKey to Discount, optional
+   * discount_amount: Decimal, required if discount is applied, default 0
+   * total_after_discount: Decimal, required
+   * order_date: DateTime, required, auto-set on creation
+   * status: String, choices ("pending", "paid", "completed", "canceled"), required, default "pending"
+* Relationships:
+   * Many-to-one with User (an order belongs to one customer).
+   * Many-to-one with Discount (an order can have one discount).
+   * One-to-many with OrderItem (an order can have multiple order items).
+5. OrderItem
+* Fields:
+   * id: Primary Key
+   * order: ForeignKey to Order, required
+   * menu_item: ForeignKey to MenuItem, required
+   * quantity: Integer, required, minimum 1
+   * price: Decimal, required (price of the menu item at the time of order)
+* Relationships:
+   * Many-to-one with Order (an order item belongs to one order).
+   * Many-to-one with MenuItem (an order item corresponds to one menu item).
+Workflows
+1. User Registration
+1. User submits a registration form with email and password.
+2. System creates a new User record.
+3. User is redirected to the login page.
+2. User Login
+1. User submits a login form with email and password.
+2. System authenticates the user.
+3. User is redirected to the homepage or their cart.
+3. Menu Browsing
+1. User visits the menu page.
+2. System displays all menu items, grouped by category.
+3. User can filter by category (e.g., Coffee, Pastry).
+4. User clicks an item to view its details (optional).
+4. Adding Items to Cart
+1. Authenticated user selects a menu item and specifies a quantity.
+2. System adds the item to the user’s cart (session-based or database-stored).
+3. User can continue adding items or view the cart.
+5. Applying a Discount
+1. User views their cart, including items, quantities, and total price before discount.
+2. User clicks an “Apply Discount” button.
+3. System displays a list of active discounts (is_active=True, within valid dates, not exceeding usage limits) or allows entering a discount code.
+4. User selects a discount or enters a code.
+5. System validates the discount:
+   * Checks if the discount is active and within valid dates.
+   * Verifies the order total meets the minimum order value (if applicable).
+   * Ensures the discount has not exceeded max_uses or max_uses_per_customer.
+   * For item-specific discounts, confirms the cart contains the specified items.
+6. If valid, the system applies the discount:
+   * For percentage: discount_amount = total_before_discount * (value / 100).
+   * For fixed: discount_amount = min(value, total_before_discount).
+   * For item-specific: discount_amount = sum of discounts on eligible items (e.g., item_price * quantity * (value / 100) for percentage-based).
+7. System updates total_after_discount = total_before_discount - discount_amount.
+8. User sees the updated cart with the discount applied.
+6. Placing an Order
+1. User reviews the cart with the applied discount (if any).
+2. User confirms the order.
+3. System creates an Order record with:
+   * customer: Current user
+   * total_before_discount: Sum of item prices * quantities
+   * discount: Selected discount (if any)
+   * discount_amount: Calculated discount amount
+   * total_after_discount: Total after applying discount
+   * order_date: Current timestamp
+   * status: "pending"
+4. System creates OrderItem records for each item in the cart.
+5. System assumes payment is processed externally and updates status to "paid" upon confirmation.
+7. Viewing Order History
+1. Authenticated user visits the order history page.
+2. System displays a list of the user’s orders, including order date, items, total_before_discount, discount (if any), discount_amount, total_after_discount, and status.
+8. Managing Discounts (Admin)
+1. Admin logs into the Django admin interface.
+2. Admin navigates to the discount management section.
+3. Admin can:
+   * Create a new discount by filling out a form with name, description, type, value, conditions, and usage limits.
+   * Update an existing discount.
+   * Delete a discount.
+4. System saves the changes to the Discount model.
+9. Managing Menu Items (Admin)
+1. Admin logs into the Django admin interface.
+2. Admin navigates to the menu item management section.
+3. Admin can:
+   * Create a new menu item with name, description, price, and category.
+   * Update an existing menu item.
+   * Delete a menu item.
+4. System saves the changes to the MenuItem model.
+Endpoints
+User Authentication
+* POST /register/: Register a new user (form: email, password).
+* POST /login/: Log in a user (form: email, password).
+* POST /logout/: Log out the current user.
+Menu
+* GET /menu/: List all menu items, with optional query parameter:
+   * category: Filter by category (e.g., "Coffee", "Pastry").
+* GET /menu//: Display details of a specific menu item.
+Cart
+* GET /cart/: View the current cart (items, quantities, total_before_discount, applied discount, total_after_discount).
+* POST /cart/add/: Add an item to the cart (form: menu_item_id, quantity).
+* POST /cart/remove/: Remove an item from the cart (form: menu_item_id).
+* POST /cart/apply_discount/: Apply a discount to the cart (form: discount_id or discount_code).
+Orders
+* POST /orders/: Place an order (form: cart data, applied discount).
+* GET /orders/: List all orders for the authenticated user.
+* GET /orders//: Display details of a specific order.
+Admin Interface
+* GET /admin/: Access the Django admin interface for managing MenuItem, Discount, and Order records.
+* GET /admin/discounts/: List all discounts.
+* POST /admin/discounts/: Create a new discount (form: name, description, type, value, min_order_value, valid_from, valid_to, max_uses, max_uses_per_customer, is_active, specific_items).
+* PUT /admin/discounts//: Update a discount.
+* DELETE /admin/discounts//: Delete a discount.
+* GET /admin/menu/: List all menu items.
+* POST /admin/menu/: Create a new menu item (form: name, description, price, category).
+* PUT /admin/menu//: Update a menu item.
+* DELETE /admin/menu//: Delete a menu item.
+Notes
+* Discount Validation: Before applying a discount, the system must check:
+   * is_active=True.
+   * Current date is between valid_from and valid_to.
+   * Order total meets min_order_value (if specified).
+   * Discount has not exceeded max_uses or max_uses_per_customer.
+   * For item-specific discounts, the cart contains at least one specified item.
+* Discount Calculation:
+   * Percentage: discount_amount = total_before_discount * (value / 100).
+   * Fixed: discount_amount = min(value, total_before_discount).
+   * Item-specific: discount_amount = sum of (item_price * quantity * (value / 100)) for eligible items (for percentage-based) or sum of (value * quantity) for fixed-amount item-specific discounts.
+* Single Discount Rule: Only one discount can be applied per order to simplify logic.
+* Cart Storage: The cart can be session-based or stored in the database, depending on implementation preference.
+* Payment: Payment processing is assumed to be handled externally; the system only records the order status.
+* Security: All forms must include CSRF tokens. Endpoints requiring authentication must check for a logged-in user.
+* Time Zone: All dates and times are in the server’s timezone.
+* Usage Tracking: The system must track discount usage to enforce max_uses and max_uses_per_customer limits (e.g., by querying Order records).
+Example Data
+Model
+	Field Example
+	Description
+	MenuItem
+	name: "Latte"
+	A coffee item.
+	
+
+	description: "Espresso with milk"
+	Optional description.
+	
+
+	price: 4.99
+	Price in dollars.
+	
+
+	category: "Coffee"
+	Category for filtering.
+	Discount
+	name: "Summer Sale"
+	Discount name.
+	
+
+	type: "percentage"
+	Discount type.
+	
+
+	value: 10
+	10% off the order.
+	
+
+	min_order_value: 15.00
+	Requires $15 minimum order.
+	
+
+	valid_from: 2025-07-01 00:00:00
+	Start date.
+	
+
+	valid_to: 2025-08-01 23:59:59
+	End date.
+	
+
+	max_uses: 100
+	Total usage limit.
+	
+
+	max_uses_per_customer: 1
+	One use per customer.
+	Order
+	total_before_discount: 20.00
+	Total before discount.
+	
+
+	discount: Summer Sale
+	Applied discount.
+	
+
+	discount_amount: 2.00
+	10% of $20.
+	
+
+	total_after_discount: 18.00
+	Final total.
+	
+
+	status: "paid"
+	Order status.

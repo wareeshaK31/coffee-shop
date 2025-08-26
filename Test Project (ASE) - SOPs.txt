@@ -1,0 +1,61 @@
+﻿SOPs for Test Projects - ASE
+For Trainees:
+1. Follow general Test Project SOPs. (DON’T SKIP THIS, THIS CONTAINS MOST IMPORTANT INSTRUCTIONS)
+2. Following things are always required in projects, whether or not mentioned in the use case docs:
+   1. If there is a login, emails for password reset etc should be set-up properly.
+   2. If there is any file upload, you are REQUIRED to use ActiveStorage or carrierwave or any similar library.
+3. Please make a github account with your company email.
+4. Make a private repo in your account, before starting the test project.
+5. Give access to this repo to your buddy(ask him his github username) and training department reps (Username: devsinc-training-coordinator).
+6. You are supposed to follow strict guidelines around git and github usage, use proper branching for each piece of feature, each branch will get in master after it is reviewed and approved.
+7. Branch naming is very important as well, also don’t merge any PR without getting it approved. If approvals are late, ping respected reviewers for reviews.
+8. Commit/PR size and messages are very important. Talk this out with your buddy, commit messages should be descriptive and follow certain guidelines.
+   1. Subject line of the commit message should be descriptive but short(<60-70 characters). And the subject line should clearly state what is done in this commit.
+   2. Add a blank line after the subject line.
+   3. Then describe all changes in the commit 1 by one in bullet points.
+   4. Each bullet point may start with an asterisk(*) followed by a space. This makes bullet points when pushed to github or bitbucket etc.
+   5. Commit messages (bullet points) may include the subject and the action that has been performed.
+“<Subject>: <Action>”
+E.g:
+* UsersController: Implement show action along with its serializer
+* Application: Integrate bullet gem
+   6. Commit size means how much code changes are in a commit, ideally each commit should only contain related changes to one feature/bug. It’s easy to understand, review and test, and also makes it easy to revert any changes if needed.
+   9. Part of using git properly is to review your each commit changes before you actually commit them out. This means using gitk or any other tool to skim through all the changes you have staged, and see if any updates are needed(and usually you will find maximum issues in this review, improving your PR quality).
+   10. Your PRs should be related to one feature only, don’t make huge PRs and divide your work properly in the PRs.
+   11. Tag each PR for review properly, add both buddy and training department rep in the reviewers section when PR is ready for review.
+   12. Follow-up with reviewers for PR reviews timely.
+   13. Do a session with your buddy on git and github usage, branch naming and other things before starting the work.
+   14. Coordinate with your buddy when there is any feedback on the PR, how to resolve feedback and get the PR approved properly. It is part of the training.
+   15. Complete each module with all SOPs properly done, don't wait for the project end to incorporate important details (like authorization/cloudinary etc), and dockerize side by side so you have presentable code and project even if the project is not 100% complete at the time of evaluation.
+   16. Follow other general SOPs as outlined in training SOPs. Including proper git flows, commit messages and everything.
+   17. Project should contain a proper README.md file with instructions on how to run and add system dependencies , env vars etc(keep it updated as you add dependencies).
+   18. Readme should also list any and all assumptions(discussed or not, list them all).
+   19. Learning to take reasonable assumptions is also important. Though you should try to confirm assumptions when possible with stakeholders.
+   20. Create an ERD(online tools are preferred unless they waste time, you can use paper for this step as well). Discuss ERD with your buddy before implementing.
+   1. Please note that we work in an agile environment, so it's not required to have a fully perfect ERD in the first go, it will and should evolve over time, but initial planning is still important. So just spend appropriate time on this step, don’t waste time.
+   21. Maximum DB constraints should be present on the DB layer, also use proper indexes etc.
+   22. There must not be any rubocop issues, if you want to adjust any of the rubocop configuration you can do that too(using a custom .rubocop file), but when you come for review, you should not have any pending rubocop issues. (if you opt to change anything in rubocop config, please get it approved from buddy + training department).
+Please also configure rubocop-rails along with standard rubocop configs.
+You may use this config for rubocop.
+   23. For file upload, you can use a free cloudinary service, and you can use this gem for integrating it into active-storage(if you are using it). Or find a relevant gem for your choice of file upload library.
+   24. We will be doing dockerization of your rails app instead of deploying it.
+   25. Follow this link to dockerize your application.
+   26. A great UI/UX will be very much appreciated. (We have limited time, so don’t waste a lot of time on this, you can always enhance the UI after functionalities are done.)
+   27. Codebase should be clean, with separation of concerns and DRY code, use partials modules, concerns etc as you see fit.
+   28. Code should be extensible, as you may get more iterations or changes in the project which you will have to accomodate in reasonable time.
+   29. Routes should also follow best practices, avoid unnecessary custom routes, and adjust maximum functionality in CRUDs.
+   30. You should write some seed data to help run the app for the first time(if anyone clones and runs the app).
+   31. Views you build should be usable and somewhat professional. Responsiveness is not mandatory but encouraged. Use bootstrap or any other CSS library for consistent views.
+   32. Authorization should not be done raw, use some rails/ruby authorization helping library with help of your buddy. (use the specific library if mentioned in the test project).
+   33. Test coverage is not required in the first phase, you might get assigned some test coverage after you are done with basic implementation.
+   34. It is Mandatory for Trainees to appear for Project Evaluation after the Last day of their assigned Test Project. For example, if the project was of 5-8 Days, Trainee will be appearing for Project Evaluation within 9th Working Days.
+   35. If the Trainee is not clear and the Evaluator has given Trainee feedback to work on; at MAX 40% of the Project Deadline will be allotted to the Trainee. For example, if the project was of 5-8 Days, and Evaluation was on 9th Working Day; 3 More days will be allotted to Trainee. Trainees will be given time till 12th Working Day and will not be allowed to appear for Evaluations after their 13th Working Day. (3 more WD if the Project was 5-8 Days & 4 WDs if the Project was of 7-9 Days)
+
+
+Learning Goals
+      * Design a system of models which use one-to-one, one-to-many, and many-to-many relationships(and polymorphics where applicable)
+      * Practice mixing HTML, CSS, and Rails templates to create an inviting and usable User Interface
+      * Differentiate responsibilities between components of the Rails stack
+      * Build a logical user-flow that moves across multiple controllers and models
+      * Learn by doing, how to implement proper authorizations
+      * Learn how to model things in a way that you have track of maximum data flows and actions taken by anyone, this is the core part of doing professional work, to be able to track and store maximum data.
