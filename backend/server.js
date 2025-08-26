@@ -5,6 +5,7 @@ import authRoutes from "./routes/authRoutes.js";
 import menuRoutes from "./routes/menuRoutes.js";
 import adminMenuRoutes from "./routes/adminMenuRoutes.js";
 import cartRoutes from "./routes/cartRoutes.js";
+import orderRoutes from "./routes/orderRoutes.js";
 
 dotenv.config();
 connectDB();
@@ -26,6 +27,9 @@ app.use("/admin/menu", adminMenuRoutes);
 
 // cart routes
 app.use("/api/cart", cartRoutes);
+
+// order routes
+app.use("/api/orders", orderRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on ${PORT}`));
