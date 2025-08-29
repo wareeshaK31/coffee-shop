@@ -1,7 +1,7 @@
 import Cart from "../models/cartModel.js";
-import DiscountService from "../services/discountService.js";
+import MenuItem from "../models/MenuItem.js";
 
-// ➕ Add item to cart
+//  Add item to cart
 export const addToCart = async (req, res) => {
   try {
     const { menuItemId, quantity } = req.body;
@@ -26,9 +26,6 @@ export const addToCart = async (req, res) => {
       cart.items.push({ menuItem: menuItemId, quantity });
     }
 
-    // Clear any applied discount when cart changes
-    cart.clearDiscount();
-
     await cart.save();
 
     // Return populated cart
@@ -36,13 +33,19 @@ export const addToCart = async (req, res) => {
       .populate('items.menuItem')
       .populate('appliedDiscount');
 
+    // Clear any applied discount when cart changes (after population)
+    if (populatedCart.appliedDiscount) {
+      populatedCart.clearDiscount();
+      await populatedCart.save();
+    }
+
     res.json(populatedCart);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// 📦 Get user cart
+//  Get user cart
 export const getCart = async (req, res) => {
   try {
     const cart = await Cart.findOne({ user: req.user._id })
@@ -76,7 +79,7 @@ export const getCart = async (req, res) => {
   }
 };
 
-// ❌ Remove item from cart (DELETE method)
+//  Remove item from cart (DELETE method)
 export const removeFromCart = async (req, res) => {
   try {
     const { menuItemId } = req.params;
@@ -88,9 +91,6 @@ export const removeFromCart = async (req, res) => {
       (item) => item.menuItem.toString() !== menuItemId
     );
 
-    // Clear any applied discount when cart changes
-    cart.clearDiscount();
-
     await cart.save();
 
     // Return populated cart
@@ -98,13 +98,19 @@ export const removeFromCart = async (req, res) => {
       .populate('items.menuItem')
       .populate('appliedDiscount');
 
+    // Clear any applied discount when cart changes (after population)
+    if (populatedCart.appliedDiscount) {
+      populatedCart.clearDiscount();
+      await populatedCart.save();
+    }
+
     res.json(populatedCart);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// ❌ Remove item from cart (POST method - alternative for better compatibility)
+//  Remove item from cart (POST method - alternative for better compatibility)
 export const removeFromCartPost = async (req, res) => {
   try {
     const { menuItemId } = req.body;
@@ -121,15 +127,18 @@ export const removeFromCartPost = async (req, res) => {
       (item) => item.menuItem.toString() !== menuItemId
     );
 
-    // Clear any applied discount when cart changes
-    cart.clearDiscount();
-
     await cart.save();
 
     // Return populated cart
     const populatedCart = await Cart.findById(cart._id)
       .populate('items.menuItem')
       .populate('appliedDiscount');
+
+    // Clear any applied discount when cart changes (after population)
+    if (populatedCart.appliedDiscount) {
+      populatedCart.clearDiscount();
+      await populatedCart.save();
+    }
 
     res.json({
       message: "Item removed from cart successfully",
@@ -140,14 +149,13 @@ export const removeFromCartPost = async (req, res) => {
   }
 };
 
-// 🎫 Apply discount to cart by ID or code
+// Apply discount to cart by code
 export const applyDiscountToCart = async (req, res) => {
   try {
-    const { discountId, discountCode } = req.body;
-    const codeOrId = discountCode || discountId;
+    const { discountCode } = req.body;
 
-    if (!codeOrId) {
-      return res.status(400).json({ message: "Discount ID or code is required" });
+    if (!discountCode) {
+      return res.status(400).json({ message: "Discount code is required" });
     }
 
     // Get user's cart
@@ -158,43 +166,118 @@ export const applyDiscountToCart = async (req, res) => {
       return res.status(400).json({ message: "Cart is empty" });
     }
 
-    // Apply discount using service (supports both code and ID)
-    const result = await DiscountService.applyDiscountByCodeOrId(
-      codeOrId,
-      cart.items,
-      req.user._id
-    );
-
-    if (!result.isValid) {
-      return res.status(400).json({
-        message: result.reason,
-        isValid: false
-      });
+    // Simple discount validation - only SAVE10 works for now
+    if (discountCode.toUpperCase() !== "SAVE10") {
+      return res.status(400).json({ message: "Invalid discount code" });
     }
 
-    // Update cart with discount
-    cart.appliedDiscount = result.discount._id;
-    cart.totalBeforeDiscount = result.totalBeforeDiscount;
-    cart.discountAmount = result.discountAmount;
-    cart.totalAfterDiscount = result.totalAfterDiscount;
+    // Calculate totals
+    const totalBeforeDiscount = cart.items.reduce((total, item) => {
+      return total + (item.menuItem.price * item.quantity);
+    }, 0);
+
+    const discountAmount = totalBeforeDiscount * 0.1; // 10% off
+    const totalAfterDiscount = totalBeforeDiscount - discountAmount;
+
+    // Update cart
+    cart.totalBeforeDiscount = totalBeforeDiscount;
+    cart.discountAmount = discountAmount;
+    cart.totalAfterDiscount = totalAfterDiscount;
 
     await cart.save();
 
     // Return updated cart
     const updatedCart = await Cart.findById(cart._id)
-      .populate('items.menuItem')
-      .populate('appliedDiscount');
+      .populate('items.menuItem');
 
     res.json({
       message: "Discount applied successfully",
-      cart: updatedCart
+      cart: updatedCart,
+      discount: {
+        code: discountCode,
+        amount: discountAmount
+      }
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// 🗑️ Remove discount from cart
+//  Update item quantity in cart
+export const updateCartItem = async (req, res) => {
+  try {
+    const { menuItemId, quantity } = req.body;
+
+    if (!menuItemId || !quantity || quantity < 1) {
+      return res.status(400).json({ message: "Valid menuItemId and quantity are required" });
+    }
+
+    let cart = await Cart.findOne({ user: req.user._id });
+
+    if (!cart) {
+      return res.status(404).json({ message: "Cart not found" });
+    }
+
+    const itemIndex = cart.items.findIndex(
+      (item) => item.menuItem.toString() === menuItemId
+    );
+
+    if (itemIndex === -1) {
+      return res.status(404).json({ message: "Item not found in cart" });
+    }
+
+    // Update quantity
+    cart.items[itemIndex].quantity = quantity;
+
+    await cart.save();
+
+    // Return populated cart
+    const populatedCart = await Cart.findById(cart._id)
+      .populate('items.menuItem')
+      .populate('appliedDiscount');
+
+    // Clear any applied discount when cart changes (after population)
+    if (populatedCart.appliedDiscount) {
+      populatedCart.clearDiscount();
+      await populatedCart.save();
+    }
+
+    res.json({
+      message: "Cart item updated successfully",
+      cart: populatedCart
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+//  Clear entire cart
+export const clearCart = async (req, res) => {
+  try {
+    let cart = await Cart.findOne({ user: req.user._id });
+
+    if (!cart) {
+      return res.status(404).json({ message: "Cart not found" });
+    }
+
+    // Clear all items and discount
+    cart.items = [];
+    cart.appliedDiscount = null;
+    cart.discountAmount = 0;
+    cart.totalBeforeDiscount = 0;
+    cart.totalAfterDiscount = 0;
+    await cart.save();
+
+    res.json({
+      message: "Cart cleared successfully",
+      cart: cart
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+//  Remove discount from cart
 export const removeDiscountFromCart = async (req, res) => {
   try {
     const cart = await Cart.findOne({ user: req.user._id });

@@ -19,33 +19,9 @@ export const placeOrder = async (req, res) => {
       0
     );
 
-    let discountAmount = 0;
-    let appliedDiscount = null;
-
-    // If discount is applied, validate and calculate
-    if (cart.appliedDiscount) {
-      const result = await DiscountService.applyDiscountToCart(
-        cart.appliedDiscount,
-        cart.items,
-        req.user._id
-      );
-
-      if (result.isValid) {
-        discountAmount = result.discountAmount;
-        appliedDiscount = cart.appliedDiscount._id;
-
-        // Increment discount usage
-        await DiscountService.incrementUsage(appliedDiscount);
-      } else {
-        // If discount is no longer valid, remove it from cart
-        cart.clearDiscount();
-        await cart.save();
-        return res.status(400).json({
-          message: `Discount is no longer valid: ${result.reason}`
-        });
-      }
-    }
-
+    // Use cart's calculated values or calculate simple discount
+    let discountAmount = cart.discountAmount || 0;
+    let appliedDiscount = cart.appliedDiscount ? cart.appliedDiscount._id : null;
     const totalAfterDiscount = totalBeforeDiscount - discountAmount;
 
     // Create order items with current prices
@@ -70,7 +46,10 @@ export const placeOrder = async (req, res) => {
 
     // Clear cart after placing order
     cart.items = [];
-    cart.clearDiscount();
+    cart.appliedDiscount = null;
+    cart.discountAmount = 0;
+    cart.totalBeforeDiscount = 0;
+    cart.totalAfterDiscount = 0;
     await cart.save();
 
     // Return populated order

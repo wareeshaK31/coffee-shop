@@ -1,5 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
+import cors from "cors";
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
 import menuRoutes from "./routes/menuRoutes.js";
@@ -12,6 +13,13 @@ dotenv.config();
 connectDB();
 
 const app = express();
+
+// CORS middleware
+app.use(cors({
+  origin: ['http://localhost:5173', 'http://localhost:5174'],
+  credentials: true
+}));
+
 app.use(express.json());
 
 // health check endpoint

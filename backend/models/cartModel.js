@@ -57,8 +57,14 @@ cartSchema.methods.calculateTotalBeforeDiscount = function() {
 cartSchema.methods.clearDiscount = function() {
   this.appliedDiscount = null;
   this.discountAmount = 0;
-  this.totalBeforeDiscount = this.calculateTotalBeforeDiscount();
-  this.totalAfterDiscount = this.totalBeforeDiscount;
+  // Only calculate if items are populated
+  if (this.items && this.items.length > 0 && this.items[0].menuItem && this.items[0].menuItem.price) {
+    this.totalBeforeDiscount = this.calculateTotalBeforeDiscount();
+    this.totalAfterDiscount = this.totalBeforeDiscount;
+  } else {
+    this.totalBeforeDiscount = 0;
+    this.totalAfterDiscount = 0;
+  }
 };
 
 // Method to apply discount

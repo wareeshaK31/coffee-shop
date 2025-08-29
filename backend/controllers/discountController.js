@@ -39,6 +39,7 @@ export const createDiscount = async (req, res) => {
     const {
       name,
       description,
+      code,
       type,
       value,
       min_order_value,
@@ -81,6 +82,7 @@ export const createDiscount = async (req, res) => {
     const discount = await Discount.create({
       name,
       description,
+      code,
       type,
       value,
       min_order_value: min_order_value || 0,
@@ -113,6 +115,7 @@ export const updateDiscount = async (req, res) => {
     const {
       name,
       description,
+      code,
       type,
       value,
       min_order_value,
@@ -137,6 +140,7 @@ export const updateDiscount = async (req, res) => {
     // Update fields
     if (name !== undefined) discount.name = name;
     if (description !== undefined) discount.description = description;
+    if (code !== undefined) discount.code = code;
     if (type !== undefined) discount.type = type;
     if (value !== undefined) discount.value = value;
     if (min_order_value !== undefined) discount.min_order_value = min_order_value;

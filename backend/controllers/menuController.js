@@ -36,11 +36,18 @@ export const adminListMenu = async (_req, res) => {
 // Admin: POST /admin/menu
 export const createMenuItem = async (req, res) => {
   try {
-    const { name, description, price, category } = req.body;
+    const { name, description, price, category, image, available } = req.body;
     if (!name || price == null || !category)
       return res.status(400).json({ message: "name, price, category required" });
 
-    const item = await MenuItem.create({ name, description, price, category });
+    const item = await MenuItem.create({
+      name,
+      description,
+      price,
+      category,
+      image: image || "",
+      available: available !== undefined ? available : true
+    });
     res.status(201).json(item);
   } catch (e) {
     res.status(500).json({ message: e.message });

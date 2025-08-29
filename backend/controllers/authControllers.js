@@ -36,6 +36,7 @@ export const registerUser = async (req, res) => {
       _id: user.id,
       name: user.name,
       email: user.email,
+      is_staff: user.is_staff,
       token: generateToken(user.id),
     });
   } catch (error) {
@@ -55,6 +56,7 @@ export const loginUser = async (req, res) => {
         _id: user.id,
         name: user.name,
         email: user.email,
+        is_staff: user.is_staff,
         token: generateToken(user.id),
       });
     } else {
@@ -70,6 +72,36 @@ export const getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("-password");
     res.status(200).json(user);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// @desc Promote user to admin (Simple promotion with secret code)
+export const promoteToAdmin = async (req, res) => {
+  try {
+    const { secretCode } = req.body;
+
+    // Simple secret code for demo purposes
+    if (secretCode !== "UNICORN_ADMIN_2024") {
+      return res.status(400).json({ message: "Invalid secret code" });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { is_staff: true },
+      { new: true }
+    ).select("-password");
+
+    res.json({
+      message: "Successfully promoted to admin",
+      user: {
+        _id: user.id,
+        name: user.name,
+        email: user.email,
+        is_staff: user.is_staff,
+      }
+    });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
